@@ -1,0 +1,562 @@
+// src/lib/data/mock/seed.ts — נתוני seed עשירים לפאזות ה-mock (0–8)
+// קורס לדוגמה מלא + 3 קורסים נוספים, קהילה, הישגים, התראות, טיפ יומי.
+import type { Achievement, AppNotification, Course, LiveEvent, Post } from "../types";
+
+// וידאו ציבורי שניתן להטמעה (Big Buck Bunny) — כדי שהנגן באמת ינגן ב-mock.
+const DEMO_VIDEO = "aqz-KE-bpKQ";
+
+function lesson(
+  moduleId: string,
+  i: number,
+  title: string,
+  durationSec: number,
+  lockedReason: string | null = null,
+) {
+  return {
+    id: `${moduleId}_l${i}`,
+    moduleId,
+    title,
+    durationSec,
+    videoProvider: "youtube" as const,
+    videoId: DEMO_VIDEO,
+    orderIndex: i,
+    resources:
+      i === 1
+        ? [
+            { id: `${moduleId}_r1`, title: "מצגת השיעור (PDF)", kind: "pdf" as const, url: "#" },
+            { id: `${moduleId}_r2`, title: "תבנית לעבודה", kind: "file" as const, url: "#" },
+          ]
+        : [],
+    lockedReason,
+  };
+}
+
+// ---------- הקורס הראשי: קמפיינר AI — מתחילים ----------
+const campaignerModules = [
+  {
+    id: "c1_m1",
+    courseId: "c1",
+    title: "יסודות: איך חושבים קמפיין",
+    orderIndex: 1,
+    lessons: [
+      lesson("c1_m1", 1, "ברוכים הבאים — איך עובד הקורס", 372),
+      lesson("c1_m1", 2, "האנטומיה של קמפיין שמוכר", 640),
+      lesson("c1_m1", 3, "לבנות פרסונת קהל יעד עם AI", 815),
+      lesson("c1_m1", 4, "המסר המרכזי: מה באמת אומרים", 540),
+    ],
+  },
+  {
+    id: "c1_m2",
+    courseId: "c1",
+    title: "כתיבה והצעה שאי אפשר לסרב לה",
+    orderIndex: 2,
+    lessons: [
+      lesson("c1_m2", 1, "מבנה ההצעה הבלתי-הפיכה", 700),
+      lesson("c1_m2", 2, "כתיבת קופי עם AI — בלי שירגיש רובוטי", 905),
+      lesson("c1_m2", 3, "כותרות שעוצרות את הגלילה", 480),
+    ],
+  },
+  {
+    id: "c1_m3",
+    courseId: "c1",
+    title: "העלאה, מדידה ואופטימיזציה",
+    orderIndex: 3,
+    lessons: [
+      lesson("c1_m3", 1, "מבנה חשבון המודעות הנכון", 812),
+      lesson("c1_m3", 2, "בדיקות A/B בשיטת 3-3-3", 690),
+      lesson("c1_m3", 3, "לקרוא את הנתונים ולדעת מה לעשות", 760),
+      lesson("c1_m3", 4, "סיכום הקורס והצעד הבא שלך", 300),
+    ],
+  },
+];
+
+function buildCourse(
+  id: string,
+  slug: string,
+  title: string,
+  description: string,
+  level: Course["level"],
+  category: string,
+  modules: Course["modules"],
+  opts: { published?: boolean; lockedReason?: string | null } = {},
+): Course {
+  const lessonsCount = modules.reduce((s, m) => s + m.lessons.length, 0);
+  const totalDurationMin = Math.round(
+    modules.reduce((s, m) => s + m.lessons.reduce((a, l) => a + l.durationSec, 0), 0) / 60,
+  );
+  return {
+    id,
+    slug,
+    title,
+    description,
+    thumbnailUrl: "",
+    level,
+    modules,
+    lessonsCount,
+    totalDurationMin,
+    isPublished: opts.published ?? true,
+    category,
+    lockedReason: opts.lockedReason ?? null,
+  };
+}
+
+// מודולים פשוטים לקורסים המשניים
+function simpleModules(courseId: string, titles: string[][]): Course["modules"] {
+  return titles.map((lessons, mi) => ({
+    id: `${courseId}_m${mi + 1}`,
+    courseId,
+    title: lessons[0],
+    orderIndex: mi + 1,
+    lessons: lessons
+      .slice(1)
+      .map((tl, li) => lesson(`${courseId}_m${mi + 1}`, li + 1, tl, 480 + li * 60)),
+  }));
+}
+
+export const COURSES: Course[] = [
+  buildCourse(
+    "c1",
+    "campaigner-ai-beginners",
+    "קמפיינר AI — מתחילים",
+    "המסלול המלא לבניית קמפיין ראשון שמביא לקוחות — מהרעיון ועד ההעלאה והאופטימיזציה, בעזרת כלי AI. בלי רקע טכני, צעד אחרי צעד.",
+    "beginner",
+    "AI",
+    campaignerModules,
+  ),
+  buildCourse(
+    "c2",
+    "landing-pages-that-sell",
+    "בניית דפי נחיתה שמוכרים",
+    "איך בונים דף נחיתה שממיר — מבנה, קופי, עיצוב ובדיקות. כולל תבניות מוכנות.",
+    "beginner",
+    "שיווק",
+    simpleModules("c2", [
+      [
+        "מבנה דף שממיר",
+        "האנטומיה של דף נחיתה",
+        "מעל הקפל: 3 השניות הראשונות",
+        "הוכחה חברתית שעובדת",
+      ],
+      ["קופי ועיצוב", "כותרות שממירות", "קריאה לפעולה (CTA)"],
+    ]),
+  ),
+  buildCourse(
+    "c3",
+    "ai-automations-for-business",
+    "אוטומציות AI לעסק שלך",
+    "לחבר את העסק לאוטומציות חכמות: לידים, מיילים, וואטסאפ ותהליכים — בלי מפתח.",
+    "intermediate",
+    "אוטומציות",
+    simpleModules("c3", [
+      ["יסודות האוטומציה", "מפה של תהליכי העסק", "הכלים: Make ו-n8n"],
+      ["אוטומציות לידים", "קליטת ליד אוטומטית", "רצף מייל אוטומטי"],
+    ]),
+  ),
+  buildCourse(
+    "c4",
+    "copywriting-24-steps",
+    "כתיבת קופי בשיטת 24 הצעדים",
+    "שיטת הכתיבה של חופית וגוני — 24 הצעדים שהופכים טקסט למכונת מכירה. קורס PRO.",
+    "advanced",
+    "קופי",
+    simpleModules("c4", [
+      ["מבוא לשיטה", "24 הצעדים — מבט על", "שלב המחקר"],
+      ["הכתיבה", "בניית הסיפור", "עריכה שמוכרת"],
+    ]),
+    { lockedReason: "נפתח בדרגת שתיל" },
+  ),
+];
+
+// ---------- הישגים (15 גלויים + 5 נסתרים) ----------
+export const ACHIEVEMENTS: Achievement[] = [
+  {
+    id: "a1",
+    slug: "first_seed",
+    title: "הזרע הראשון",
+    description: "השלמת את השיעור הראשון שלך",
+    icon: "seed",
+    hidden: false,
+    unlockedAt: "2026-05-03T10:00:00Z",
+  },
+  {
+    id: "a2",
+    slug: "week_of_gold",
+    title: "שבוע של זהב",
+    description: "רצף השקיה של 7 ימים",
+    icon: "flame",
+    hidden: false,
+    unlockedAt: "2026-05-10T08:00:00Z",
+  },
+  {
+    id: "a3",
+    slug: "first_module",
+    title: "אבן הפינה",
+    description: "השלמת מודול שלם",
+    icon: "module",
+    hidden: false,
+    unlockedAt: "2026-05-12T09:00:00Z",
+  },
+  {
+    id: "a4",
+    slug: "marathon",
+    title: "מרתוניסטית",
+    description: "צפית ב-5 שיעורים ביום אחד",
+    icon: "marathon",
+    hidden: false,
+    unlockedAt: null,
+    progressHint: "4/5 שיעורים ביום",
+  },
+  {
+    id: "a5",
+    slug: "first_post",
+    title: "קול בקהילה",
+    description: "פרסמת 10 פוסטים בקהילה",
+    icon: "community",
+    hidden: false,
+    unlockedAt: null,
+    progressHint: "3/10 פוסטים",
+  },
+  {
+    id: "a6",
+    slug: "perfect_score",
+    title: "מאה אחוז",
+    description: "ציון 100 במבחן",
+    icon: "star",
+    hidden: false,
+    unlockedAt: null,
+    progressHint: "המבחן הקרוב",
+  },
+  {
+    id: "a7",
+    slug: "month_in",
+    title: "חודש בחממה",
+    description: "רצף השקיה של 30 ימים",
+    icon: "calendar",
+    hidden: false,
+    unlockedAt: null,
+    progressHint: "6/30 ימים",
+  },
+  {
+    id: "a8",
+    slug: "first_graduate",
+    title: "בוגרת ראשונה",
+    description: "השלמת קורס שלם",
+    icon: "graduate",
+    hidden: false,
+    unlockedAt: null,
+    progressHint: "62% מהקורס",
+  },
+  {
+    id: "a9",
+    slug: "helper",
+    title: "יד מושיטה",
+    description: "עזרת ל-5 חברות בתגובות",
+    icon: "hands",
+    hidden: false,
+    unlockedAt: null,
+    progressHint: "1/5",
+  },
+  {
+    id: "a10",
+    slug: "live_regular",
+    title: "נוכחת קבועה",
+    description: "השתתפת ב-3 לייבים",
+    icon: "radio",
+    hidden: false,
+    unlockedAt: null,
+    progressHint: "0/3",
+  },
+  {
+    id: "a11",
+    slug: "early_bird",
+    title: "ציפור בוקר",
+    description: "10 השקיות לפני 8 בבוקר",
+    icon: "sunrise",
+    hidden: false,
+    unlockedAt: null,
+    progressHint: "2/10",
+  },
+  {
+    id: "a12",
+    slug: "assignment_pro",
+    title: "מגישה סדרתית",
+    description: "3 משימות שאושרו",
+    icon: "check",
+    hidden: false,
+    unlockedAt: null,
+    progressHint: "0/3",
+  },
+  {
+    id: "a13",
+    slug: "quiz_streak",
+    title: "ראש חד",
+    description: "עברת 5 מבחנים ברצף",
+    icon: "brain",
+    hidden: false,
+    unlockedAt: null,
+    progressHint: "0/5",
+  },
+  {
+    id: "a14",
+    slug: "sapling_rank",
+    title: "השתיל שלי",
+    description: "הגעת לדרגת שתיל",
+    icon: "sapling",
+    hidden: false,
+    unlockedAt: null,
+    progressHint: "עוד 260 XP",
+  },
+  {
+    id: "a15",
+    slug: "night_owl",
+    title: "ינשופה",
+    description: "השקיה אחרי חצות",
+    icon: "moon",
+    hidden: false,
+    unlockedAt: null,
+  },
+  {
+    id: "h1",
+    slug: "hidden_1",
+    title: "הישג נסתר",
+    description: "?",
+    icon: "lock",
+    hidden: true,
+    unlockedAt: null,
+  },
+  {
+    id: "h2",
+    slug: "hidden_2",
+    title: "הישג נסתר",
+    description: "?",
+    icon: "lock",
+    hidden: true,
+    unlockedAt: null,
+  },
+  {
+    id: "h3",
+    slug: "hidden_3",
+    title: "הישג נסתר",
+    description: "?",
+    icon: "lock",
+    hidden: true,
+    unlockedAt: "2026-06-01T00:00:00Z",
+  },
+  {
+    id: "h4",
+    slug: "hidden_4",
+    title: "הישג נסתר",
+    description: "?",
+    icon: "lock",
+    hidden: true,
+    unlockedAt: null,
+  },
+  {
+    id: "h5",
+    slug: "hidden_5",
+    title: "הישג נסתר",
+    description: "?",
+    icon: "lock",
+    hidden: true,
+    unlockedAt: null,
+  },
+];
+
+// ---------- קהילה ----------
+function post(
+  id: string,
+  authorId: string,
+  authorName: string,
+  authorUsername: string,
+  authorStage: Post["authorStage"],
+  authorRole: Post["authorRole"],
+  channel: string,
+  body: string,
+  minsAgo: number,
+  reactions: Partial<Post["reactions"]> = {},
+  commentsCount = 0,
+  pinned = false,
+  title: string | null = null,
+): Post {
+  return {
+    id,
+    authorId,
+    authorName,
+    authorUsername,
+    authorAvatarUrl: null,
+    authorStage,
+    authorRole,
+    channel,
+    title,
+    body,
+    imageUrl: null,
+    createdAt: new Date(Date.now() - minsAgo * 60_000).toISOString(),
+    pinned,
+    reactions: { grow: 0, gold: 0, precise: 0, lift: 0, ...reactions },
+    myReactions: [],
+    commentsCount,
+  };
+}
+
+export const POSTS: Post[] = [
+  post(
+    "p1",
+    "u_goni",
+    "גוני",
+    "goni",
+    "grower",
+    "super-admin",
+    "announcements",
+    "החממה נפתחה רשמית! כל בוקר יעלה כאן טיפ יומי חדש, וכל שבוע נעלה שיעור נוסף. מוזמנות להציג את עצמכן כאן למטה — נשמח להכיר.",
+    240,
+    { grow: 24, gold: 12 },
+    8,
+    true,
+    "ברוכות הבאות לחממה",
+  ),
+  post(
+    "p2",
+    "u_noa",
+    "נועה כהן",
+    "noa-cohen",
+    "sprout",
+    "student",
+    "wins",
+    "העליתי היום את הקמפיין הראשון שלי בעקבות מודול 2 — ותוך שעתיים נכנס הליד הראשון! עדיין לא מאמינה.",
+    55,
+    { grow: 18, gold: 9, precise: 4 },
+    6,
+    false,
+    "הליד הראשון שלי!",
+  ),
+  post(
+    "p3",
+    "u_daniel",
+    "דניאל לוי",
+    "daniel-levi",
+    "sapling",
+    "student",
+    "questions",
+    "שאלה על בדיקות A/B — כמה זמן כדאי להריץ וריאציה לפני שמחליטים? ראיתי בשיעור 3-3-3 אבל רוצה לוודא שהבנתי נכון.",
+    120,
+    { lift: 5 },
+    3,
+  ),
+  post(
+    "p4",
+    "u_ron",
+    "רון אברהם",
+    "ron-avraham",
+    "blooming",
+    "student",
+    "general",
+    "טיפ שעבד לי מטורף: לכתוב את הכותרת אחרונה, אחרי כל שאר הקופי. פתאום היא כותבת את עצמה.",
+    200,
+    { grow: 11, precise: 7 },
+    2,
+  ),
+  post(
+    "p5",
+    "u_noa",
+    "נועה כהן",
+    "noa-cohen",
+    "sprout",
+    "student",
+    "questions",
+    "מישהי עבדה עם הפרומפט לפרסונה מהשיעור? אשמח לדוגמה איך מילאתם אותו לעסק שירותים.",
+    320,
+    { lift: 3 },
+    4,
+  ),
+  post(
+    "p6",
+    "u_daniel",
+    "דניאל לוי",
+    "daniel-levi",
+    "sapling",
+    "student",
+    "wins",
+    "סיימתי את קורס דפי הנחיתה! הדף החדש שלי ממיר פי 2 מהקודם. תודה חופית וגוני.",
+    640,
+    { grow: 15, gold: 8 },
+    5,
+    false,
+    "סיימתי קורס",
+  ),
+  post(
+    "p7",
+    "u_hofit",
+    "חופית",
+    "hofit",
+    "grower",
+    "super-admin",
+    "announcements",
+    "תזכורת: הלייב החודשי על קמפיינים מתקדמים יעלה בקרוב. שמרו מקום ביומן, נעדכן תאריך מדויק כאן.",
+    1440,
+    { gold: 6 },
+    1,
+    false,
+  ),
+  post(
+    "p8",
+    "u_ron",
+    "רון אברהם",
+    "ron-avraham",
+    "blooming",
+    "student",
+    "general",
+    "מישהו כאן משלב אוטומציות עם הקמפיינים? מחפש שותפ/ה להתייעצות.",
+    2880,
+    { lift: 2 },
+    1,
+  ),
+];
+
+// ---------- התראות ----------
+export const NOTIFICATIONS: AppNotification[] = [
+  {
+    id: "n1",
+    kind: "reaction",
+    title: "קיבלת ריאקציה",
+    body: "דניאל הגיב 'מצמיח' על הפוסט שלך",
+    href: "/community",
+    read: false,
+    createdAt: new Date(Date.now() - 20 * 60_000).toISOString(),
+  },
+  {
+    id: "n2",
+    kind: "comment",
+    title: "תגובה חדשה",
+    body: "רון הגיב על 'הליד הראשון שלי!'",
+    href: "/community",
+    read: false,
+    createdAt: new Date(Date.now() - 90 * 60_000).toISOString(),
+  },
+  {
+    id: "n3",
+    kind: "level_up",
+    title: "עלית דרגה",
+    body: "צמחת לדרגת נבט",
+    href: "/achievements",
+    read: true,
+    createdAt: new Date(Date.now() - 26 * 3600_000).toISOString(),
+  },
+  {
+    id: "n4",
+    kind: "system",
+    title: "שיעור חדש",
+    body: "עלה שיעור חדש בקורס הקמפיינרים",
+    href: "/courses/campaigner-ai-beginners",
+    read: true,
+    createdAt: new Date(Date.now() - 50 * 3600_000).toISOString(),
+  },
+];
+
+// ---------- אירועים (בקרוב) ----------
+export const EVENTS: LiveEvent[] = [];
+
+// ---------- טיפ יומי ----------
+export const DAILY_TIP = {
+  title: "ההשקיה של היום",
+  body: "לפני שכותבים קופי — כתבו במשפט אחד את הפחד הכי גדול של הלקוח. כל השאר נגזר מזה.",
+};
