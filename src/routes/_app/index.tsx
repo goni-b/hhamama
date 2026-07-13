@@ -2,6 +2,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
+import { format } from "date-fns";
+import { he } from "date-fns/locale";
 import { Play, ArrowLeft, Flame, Target, MessageSquare, Radio, Droplet } from "lucide-react";
 import { greetingKey, t } from "../../lib/copy";
 import { revealUp, useGatedVariants, staggerContainer } from "../../lib/motion";
@@ -37,6 +39,15 @@ function Dashboard() {
     queryFn: () => data.community.listPosts(),
   });
   const { data: courses } = useQuery({ queryKey: ["courses"], queryFn: () => data.courses.list() });
+  const { data: events } = useQuery({ queryKey: ["events"], queryFn: () => data.events.list() });
+
+  // הלייב הקרוב: live קודם, אחרת ה-upcoming המוקדם ביותר
+  const nextEvent =
+    (events ?? []).find((e) => e.status === "live") ??
+    (events ?? [])
+      .filter((e) => e.status === "upcoming")
+      .sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt))[0] ??
+    null;
 
   if (!profile) return null;
   const firstName = profile.fullName.split(" ")[0];
@@ -191,7 +202,7 @@ function Dashboard() {
             </motion.div>
           )}
 
-          {/* UpcomingEvents — בקרוב */}
+          {/* UpcomingEvents — הלייב הקרוב מה-DB */}
           <motion.div variants={gated} className="surface-card flex items-center gap-4 p-5">
             <span
               className="flex h-11 w-11 items-center justify-center rounded-full"
@@ -199,11 +210,31 @@ function Dashboard() {
             >
               <Radio className="h-5 w-5 text-accent" />
             </span>
-            <div className="flex-1">
-              <div className="text-body font-medium text-ink">לייבים חודשיים</div>
-              <div className="text-small text-muted">לוח הלייבים והשידורים החיים יעלה בקרוב.</div>
-            </div>
-            <span className="label-mono">בקרוב</span>
+            {nextEvent ? (
+              <>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-body font-medium text-ink">{nextEvent.title}</div>
+                  <div className="text-small text-muted">
+                    {format(new Date(nextEvent.startsAt), "EEEE, d בMMMM · HH:mm", { locale: he })}
+                    {" · "}
+                    {nextEvent.hostName}
+                  </div>
+                </div>
+                <Link to="/events" className="btn-secondary shrink-0 text-small">
+                  {nextEvent.status === "live" ? "מצטרפים ללייב" : "לכל הלייבים"}
+                </Link>
+              </>
+            ) : (
+              <>
+                <div className="flex-1">
+                  <div className="text-body font-medium text-ink">לייבים ושידורים</div>
+                  <div className="text-small text-muted">הלייב הבא יעלה בקרוב — שווה לעקוב.</div>
+                </div>
+                <Link to="/events" className="label-mono transition-colors hover:text-accent">
+                  ללוח הלייבים
+                </Link>
+              </>
+            )}
           </motion.div>
 
           {/* CommunityTeaser */}

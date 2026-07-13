@@ -48,8 +48,10 @@ import {
   getComments,
   getCreatedPosts,
   getMyReactions,
+  getNote,
   getProgress,
   setLessonProgress,
+  setNote,
   toggleReactionState,
 } from "./store";
 
@@ -251,6 +253,13 @@ export const mockClient: DataClient = {
         xpAwarded: already ? 0 : XP_VALUES.lesson_complete,
         unlockedLessonId: findNextLesson(lessonId),
       });
+    },
+    async getNote(lessonId) {
+      return delay(getNote(lessonId));
+    },
+    async saveNote(lessonId, body) {
+      setNote(lessonId, body);
+      return delay(undefined);
     },
     async continueLearning() {
       const prog = getProgress();
@@ -629,14 +638,20 @@ export const mockClient: DataClient = {
     async upsertLesson(input: LessonInput) {
       const mod = courses.flatMap((c) => c.modules).find((m) => m.id === input.moduleId);
       if (!mod) throw new DataError("not_found", "מודול לא נמצא");
+      const toResources = (l: Lesson) =>
+        input.resources
+          ? input.resources.map((r, i) => ({ id: `r_${l.id}_${i}`, ...r }))
+          : l.resources;
       const existing = input.id ? mod.lessons.find((l) => l.id === input.id) : undefined;
       if (existing) {
         Object.assign(existing, {
           title: input.title,
+          description: input.description ?? existing.description ?? null,
           durationSec: input.durationSec,
           videoProvider: input.videoProvider,
           videoId: input.videoId,
           orderIndex: input.orderIndex,
+          resources: toResources(existing),
         });
         return delay(existing);
       }
@@ -644,6 +659,7 @@ export const mockClient: DataClient = {
         id: `l_${Date.now()}`,
         moduleId: input.moduleId,
         title: input.title,
+        description: input.description ?? null,
         durationSec: input.durationSec,
         videoProvider: input.videoProvider,
         videoId: input.videoId,
@@ -651,10 +667,15 @@ export const mockClient: DataClient = {
         resources: [],
         lockedReason: null,
       };
+      l.resources = toResources(l);
       mod.lessons.push(l);
       const course = courses.find((c) => c.modules.some((m) => m.id === mod.id));
       if (course) course.lessonsCount += 1;
       return delay(l);
+    },
+    async uploadMaterial(file: File) {
+      // mock: אין Storage — מחזירים URL מדומה יציב לפי שם הקובץ
+      return delay({ url: `https://mock.local/materials/${encodeURIComponent(file.name)}` });
     },
     async listMembers(search) {
       let list = [...SEED_PROFILES];

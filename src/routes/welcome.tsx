@@ -92,7 +92,8 @@ function WelcomePage() {
         </div>
 
         <div className="surface-card min-h-[380px] p-7">
-          <AnimatePresence mode="wait">
+          {/* בלי mode="wait" — exit תקוע חוסם את השלב הבא (motion v12 + reduced-motion) */}
+          <AnimatePresence initial={false}>
             <motion.div
               key={step}
               initial={{ opacity: 0, x: 28 }}

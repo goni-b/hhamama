@@ -2,7 +2,16 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { Play, Check, Lock, Clock, Layers, BarChart3, ArrowLeft } from "lucide-react";
+import {
+  Play,
+  Check,
+  Lock,
+  Clock,
+  Layers,
+  BarChart3,
+  ArrowLeft,
+  ClipboardCheck,
+} from "lucide-react";
 import { data } from "../../../lib/data";
 import { EASE } from "../../../lib/motion";
 import { EmptyState } from "../../../components/greenhouse/EmptyState";
@@ -32,6 +41,29 @@ const OUTCOMES = [
 function fmtDur(sec: number) {
   const m = Math.floor(sec / 60);
   return `${m}:${String(sec % 60).padStart(2, "0")}`;
+}
+
+/** שורת "מבחן המודול" בתחתית כל מודול — מוצגת רק כשקיים מבחן */
+function ModuleQuizRow({ moduleId }: { moduleId: string }) {
+  const { data: quiz } = useQuery({
+    queryKey: ["moduleQuiz", moduleId],
+    queryFn: () => data.quizzes.getByModule(moduleId),
+  });
+  if (!quiz) return null;
+  return (
+    <Link
+      to="/quiz/$id"
+      params={{ id: quiz.id }}
+      className="mb-2 flex items-center gap-3 rounded-md border px-3 py-2.5 transition-colors hover:bg-[color:var(--accent-faint)]"
+      style={{ borderColor: "var(--accent-border)" }}
+    >
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+        <ClipboardCheck className="h-4 w-4 text-accent" />
+      </span>
+      <span className="flex-1 text-body text-ink">מבחן המודול</span>
+      <span className="font-mono text-[11px] tabular text-muted">סף מעבר {quiz.passScore}</span>
+    </Link>
+  );
 }
 
 function CoursePage() {
@@ -237,6 +269,7 @@ function CoursePage() {
                       );
                     })}
                   </ul>
+                  {!locked && <ModuleQuizRow moduleId={m.id} />}
                 </AccordionContent>
               </AccordionItem>
             ))}

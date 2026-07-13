@@ -15,6 +15,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as QuizIdRouteImport } from './routes/quiz/$id'
 import { Route as AuthStaffRouteImport } from './routes/auth/staff'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
 import { Route as AdminSubmissionsRouteImport } from './routes/admin/submissions'
@@ -27,11 +28,15 @@ import { Route as AdminCoursesIndexRouteImport } from './routes/admin/courses/in
 import { Route as AppEventsIndexRouteImport } from './routes/_app/events/index'
 import { Route as AppCoursesIndexRouteImport } from './routes/_app/courses/index'
 import { Route as AppCommunityIndexRouteImport } from './routes/_app/community/index'
+import { Route as AppAssignmentsIndexRouteImport } from './routes/_app/assignments/index'
 import { Route as AppAccountIndexRouteImport } from './routes/_app/account/index'
+import { Route as QuizIdResultsRouteImport } from './routes/quiz/$id.results'
 import { Route as LearnCourseSlugLessonIdRouteImport } from './routes/learn/$courseSlug.$lessonId'
 import { Route as AdminCoursesIdRouteImport } from './routes/admin/courses/$id'
 import { Route as AppProfileUsernameRouteImport } from './routes/_app/profile.$username'
 import { Route as AppCoursesSlugRouteImport } from './routes/_app/courses/$slug'
+import { Route as AppAssignmentsIdRouteImport } from './routes/_app/assignments/$id'
+import { Route as AppAccountCancelRouteImport } from './routes/_app/account/cancel'
 import { Route as AppCommunityPostIdRouteImport } from './routes/_app/community/post.$id'
 
 const WelcomeRoute = WelcomeRouteImport.update({
@@ -62,6 +67,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
+} as any)
+const QuizIdRoute = QuizIdRouteImport.update({
+  id: '/quiz/$id',
+  path: '/quiz/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthStaffRoute = AuthStaffRouteImport.update({
   id: '/auth/staff',
@@ -123,10 +133,20 @@ const AppCommunityIndexRoute = AppCommunityIndexRouteImport.update({
   path: '/community/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAssignmentsIndexRoute = AppAssignmentsIndexRouteImport.update({
+  id: '/assignments/',
+  path: '/assignments/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAccountIndexRoute = AppAccountIndexRouteImport.update({
   id: '/account/',
   path: '/account/',
   getParentRoute: () => AppRoute,
+} as any)
+const QuizIdResultsRoute = QuizIdResultsRouteImport.update({
+  id: '/results',
+  path: '/results',
+  getParentRoute: () => QuizIdRoute,
 } as any)
 const LearnCourseSlugLessonIdRoute = LearnCourseSlugLessonIdRouteImport.update({
   id: '/learn/$courseSlug/$lessonId',
@@ -148,6 +168,16 @@ const AppCoursesSlugRoute = AppCoursesSlugRouteImport.update({
   path: '/courses/$slug',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAssignmentsIdRoute = AppAssignmentsIdRouteImport.update({
+  id: '/assignments/$id',
+  path: '/assignments/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAccountCancelRoute = AppAccountCancelRouteImport.update({
+  id: '/account/cancel',
+  path: '/account/cancel',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCommunityPostIdRoute = AppCommunityPostIdRouteImport.update({
   id: '/community/post/$id',
   path: '/community/post/$id',
@@ -167,12 +197,17 @@ export interface FileRoutesByFullPath {
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/staff': typeof AuthStaffRoute
+  '/quiz/$id': typeof QuizIdRouteWithChildren
   '/admin/': typeof AdminIndexRoute
+  '/account/cancel': typeof AppAccountCancelRoute
+  '/assignments/$id': typeof AppAssignmentsIdRoute
   '/courses/$slug': typeof AppCoursesSlugRoute
   '/profile/$username': typeof AppProfileUsernameRoute
   '/admin/courses/$id': typeof AdminCoursesIdRoute
   '/learn/$courseSlug/$lessonId': typeof LearnCourseSlugLessonIdRoute
+  '/quiz/$id/results': typeof QuizIdResultsRoute
   '/account/': typeof AppAccountIndexRoute
+  '/assignments/': typeof AppAssignmentsIndexRoute
   '/community/': typeof AppCommunityIndexRoute
   '/courses/': typeof AppCoursesIndexRoute
   '/events/': typeof AppEventsIndexRoute
@@ -190,13 +225,18 @@ export interface FileRoutesByTo {
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/staff': typeof AuthStaffRoute
+  '/quiz/$id': typeof QuizIdRouteWithChildren
   '/': typeof AppIndexRoute
   '/admin': typeof AdminIndexRoute
+  '/account/cancel': typeof AppAccountCancelRoute
+  '/assignments/$id': typeof AppAssignmentsIdRoute
   '/courses/$slug': typeof AppCoursesSlugRoute
   '/profile/$username': typeof AppProfileUsernameRoute
   '/admin/courses/$id': typeof AdminCoursesIdRoute
   '/learn/$courseSlug/$lessonId': typeof LearnCourseSlugLessonIdRoute
+  '/quiz/$id/results': typeof QuizIdResultsRoute
   '/account': typeof AppAccountIndexRoute
+  '/assignments': typeof AppAssignmentsIndexRoute
   '/community': typeof AppCommunityIndexRoute
   '/courses': typeof AppCoursesIndexRoute
   '/events': typeof AppEventsIndexRoute
@@ -217,13 +257,18 @@ export interface FileRoutesById {
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/staff': typeof AuthStaffRoute
+  '/quiz/$id': typeof QuizIdRouteWithChildren
   '/_app/': typeof AppIndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/_app/account/cancel': typeof AppAccountCancelRoute
+  '/_app/assignments/$id': typeof AppAssignmentsIdRoute
   '/_app/courses/$slug': typeof AppCoursesSlugRoute
   '/_app/profile/$username': typeof AppProfileUsernameRoute
   '/admin/courses/$id': typeof AdminCoursesIdRoute
   '/learn/$courseSlug/$lessonId': typeof LearnCourseSlugLessonIdRoute
+  '/quiz/$id/results': typeof QuizIdResultsRoute
   '/_app/account/': typeof AppAccountIndexRoute
+  '/_app/assignments/': typeof AppAssignmentsIndexRoute
   '/_app/community/': typeof AppCommunityIndexRoute
   '/_app/courses/': typeof AppCoursesIndexRoute
   '/_app/events/': typeof AppEventsIndexRoute
@@ -245,12 +290,17 @@ export interface FileRouteTypes {
     | '/admin/submissions'
     | '/auth/reset-password'
     | '/auth/staff'
+    | '/quiz/$id'
     | '/admin/'
+    | '/account/cancel'
+    | '/assignments/$id'
     | '/courses/$slug'
     | '/profile/$username'
     | '/admin/courses/$id'
     | '/learn/$courseSlug/$lessonId'
+    | '/quiz/$id/results'
     | '/account/'
+    | '/assignments/'
     | '/community/'
     | '/courses/'
     | '/events/'
@@ -268,13 +318,18 @@ export interface FileRouteTypes {
     | '/admin/submissions'
     | '/auth/reset-password'
     | '/auth/staff'
+    | '/quiz/$id'
     | '/'
     | '/admin'
+    | '/account/cancel'
+    | '/assignments/$id'
     | '/courses/$slug'
     | '/profile/$username'
     | '/admin/courses/$id'
     | '/learn/$courseSlug/$lessonId'
+    | '/quiz/$id/results'
     | '/account'
+    | '/assignments'
     | '/community'
     | '/courses'
     | '/events'
@@ -294,13 +349,18 @@ export interface FileRouteTypes {
     | '/admin/submissions'
     | '/auth/reset-password'
     | '/auth/staff'
+    | '/quiz/$id'
     | '/_app/'
     | '/admin/'
+    | '/_app/account/cancel'
+    | '/_app/assignments/$id'
     | '/_app/courses/$slug'
     | '/_app/profile/$username'
     | '/admin/courses/$id'
     | '/learn/$courseSlug/$lessonId'
+    | '/quiz/$id/results'
     | '/_app/account/'
+    | '/_app/assignments/'
     | '/_app/community/'
     | '/_app/courses/'
     | '/_app/events/'
@@ -315,6 +375,7 @@ export interface RootRouteChildren {
   WelcomeRoute: typeof WelcomeRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   AuthStaffRoute: typeof AuthStaffRoute
+  QuizIdRoute: typeof QuizIdRouteWithChildren
   LearnCourseSlugLessonIdRoute: typeof LearnCourseSlugLessonIdRoute
 }
 
@@ -361,6 +422,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/quiz/$id': {
+      id: '/quiz/$id'
+      path: '/quiz/$id'
+      fullPath: '/quiz/$id'
+      preLoaderRoute: typeof QuizIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth/staff': {
       id: '/auth/staff'
@@ -446,12 +514,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCommunityIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/assignments/': {
+      id: '/_app/assignments/'
+      path: '/assignments'
+      fullPath: '/assignments/'
+      preLoaderRoute: typeof AppAssignmentsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/account/': {
       id: '/_app/account/'
       path: '/account'
       fullPath: '/account/'
       preLoaderRoute: typeof AppAccountIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/quiz/$id/results': {
+      id: '/quiz/$id/results'
+      path: '/results'
+      fullPath: '/quiz/$id/results'
+      preLoaderRoute: typeof QuizIdResultsRouteImport
+      parentRoute: typeof QuizIdRoute
     }
     '/learn/$courseSlug/$lessonId': {
       id: '/learn/$courseSlug/$lessonId'
@@ -481,6 +563,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCoursesSlugRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/assignments/$id': {
+      id: '/_app/assignments/$id'
+      path: '/assignments/$id'
+      fullPath: '/assignments/$id'
+      preLoaderRoute: typeof AppAssignmentsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/account/cancel': {
+      id: '/_app/account/cancel'
+      path: '/account/cancel'
+      fullPath: '/account/cancel'
+      preLoaderRoute: typeof AppAccountCancelRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/community/post/$id': {
       id: '/_app/community/post/$id'
       path: '/community/post/$id'
@@ -497,9 +593,12 @@ interface AppRouteChildren {
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppSearchRoute: typeof AppSearchRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAccountCancelRoute: typeof AppAccountCancelRoute
+  AppAssignmentsIdRoute: typeof AppAssignmentsIdRoute
   AppCoursesSlugRoute: typeof AppCoursesSlugRoute
   AppProfileUsernameRoute: typeof AppProfileUsernameRoute
   AppAccountIndexRoute: typeof AppAccountIndexRoute
+  AppAssignmentsIndexRoute: typeof AppAssignmentsIndexRoute
   AppCommunityIndexRoute: typeof AppCommunityIndexRoute
   AppCoursesIndexRoute: typeof AppCoursesIndexRoute
   AppEventsIndexRoute: typeof AppEventsIndexRoute
@@ -512,9 +611,12 @@ const AppRouteChildren: AppRouteChildren = {
   AppNotificationsRoute: AppNotificationsRoute,
   AppSearchRoute: AppSearchRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAccountCancelRoute: AppAccountCancelRoute,
+  AppAssignmentsIdRoute: AppAssignmentsIdRoute,
   AppCoursesSlugRoute: AppCoursesSlugRoute,
   AppProfileUsernameRoute: AppProfileUsernameRoute,
   AppAccountIndexRoute: AppAccountIndexRoute,
+  AppAssignmentsIndexRoute: AppAssignmentsIndexRoute,
   AppCommunityIndexRoute: AppCommunityIndexRoute,
   AppCoursesIndexRoute: AppCoursesIndexRoute,
   AppEventsIndexRoute: AppEventsIndexRoute,
@@ -541,6 +643,17 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface QuizIdRouteChildren {
+  QuizIdResultsRoute: typeof QuizIdResultsRoute
+}
+
+const QuizIdRouteChildren: QuizIdRouteChildren = {
+  QuizIdResultsRoute: QuizIdResultsRoute,
+}
+
+const QuizIdRouteWithChildren =
+  QuizIdRoute._addFileChildren(QuizIdRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
@@ -548,6 +661,7 @@ const rootRouteChildren: RootRouteChildren = {
   WelcomeRoute: WelcomeRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   AuthStaffRoute: AuthStaffRoute,
+  QuizIdRoute: QuizIdRouteWithChildren,
   LearnCourseSlugLessonIdRoute: LearnCourseSlugLessonIdRoute,
 }
 export const routeTree = rootRouteImport

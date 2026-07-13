@@ -52,6 +52,8 @@ export interface Lesson {
   id: string;
   moduleId: string;
   title: string;
+  /** הטקסט שמוצג מתחת לווידאו בנגן */
+  description?: string | null;
   durationSec: number;
   videoProvider: "youtube" | "vimeo" | "bunny";
   videoId: string;
@@ -293,14 +295,23 @@ export interface CourseInput {
   isPublished: boolean;
 }
 
+export interface LessonResourceInput {
+  title: string;
+  kind: "pdf" | "link" | "file";
+  url: string;
+}
+
 export interface LessonInput {
   id?: string;
   moduleId: string;
   title: string;
+  description?: string;
   durationSec: number;
   videoProvider: "youtube" | "vimeo" | "bunny";
   videoId: string;
   orderIndex: number;
+  /** כשמועבר — מחליף את כל חומרי השיעור (replace-all) */
+  resources?: LessonResourceInput[];
 }
 
 export interface QuizInput {
@@ -366,6 +377,8 @@ export interface DataClient {
     getForCourse(courseId: string): Promise<LessonProgress[]>;
     savePosition(lessonId: string, positionSec: number, deltaSec: number): Promise<void>;
     markComplete(lessonId: string): Promise<{ xpAwarded: number; unlockedLessonId: string | null }>;
+    getNote(lessonId: string): Promise<string>;
+    saveNote(lessonId: string, body: string): Promise<void>;
     continueLearning(): Promise<{
       course: Course;
       lesson: Lesson;
@@ -456,6 +469,8 @@ export interface DataClient {
     addModule(courseId: string, title: string): Promise<Course>;
     upsertCourse(input: CourseInput): Promise<Course>;
     upsertLesson(input: LessonInput): Promise<Lesson>;
+    /** העלאת קובץ חומר-עזר ל-bucket הציבורי materials; מחזיר URL ציבורי */
+    uploadMaterial(file: File): Promise<{ url: string }>;
     listMembers(search?: string): Promise<Profile[]>;
     resetPassword(userId: string): Promise<{ tempPassword: string }>;
     setRole(userId: string, role: Role): Promise<void>;
