@@ -1,12 +1,23 @@
 // src/routes/admin/courses/$id.tsx — בונה הקורסים (פרק 3.4 §19)
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowRight, Plus, Play, FolderPlus, Save } from "lucide-react";
+import {
+  ArrowRight,
+  Plus,
+  Play,
+  FolderPlus,
+  Save,
+  FileText,
+  Link2,
+  Paperclip,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { data } from "../../../lib/data";
-import type { Lesson } from "../../../lib/data/types";
-import { getVideoAdapter } from "../../../lib/video/provider";
+import type { Lesson, LessonResourceInput } from "../../../lib/data/types";
+import { getVideoAdapter, parseVideoUrl } from "../../../lib/video/provider";
 import { Input } from "../../../components/ui/input";
 import { EmptyState } from "../../../components/greenhouse/EmptyState";
 
@@ -213,6 +224,19 @@ function AddModuleButton({ onAdd }: { onAdd: (title: string) => void }) {
   );
 }
 
+/** שחזור קישור קנוני מתוך provider+id — לתצוגה בשדה הקישור בעריכה */
+function canonicalVideoUrl(l: Lesson | null): string {
+  if (!l?.videoId) return "";
+  if (l.videoProvider === "vimeo") return `https://vimeo.com/${l.videoId}`;
+  return `https://youtu.be/${l.videoId}`;
+}
+
+const PROVIDER_LABEL: Record<string, string> = { youtube: "YouTube", vimeo: "Vimeo" };
+
+function kindForFile(name: string): LessonResourceInput["kind"] {
+  return name.toLowerCase().endsWith(".pdf") ? "pdf" : "file";
+}
+
 function LessonEditor({
   moduleId,
   lesson,
@@ -223,15 +247,24 @@ function LessonEditor({
   onSaved: () => void;
 }) {
   const [title, setTitle] = useState(lesson?.title ?? "");
-  const [videoId, setVideoId] = useState(lesson?.videoId ?? "");
+  const [videoInput, setVideoInput] = useState(() => canonicalVideoUrl(lesson));
+  const [description, setDescription] = useState(lesson?.description ?? "");
   const [minutes, setMinutes] = useState(lesson ? Math.round(lesson.durationSec / 60) : 8);
-  const [provider] = useState<Lesson["videoProvider"]>(lesson?.videoProvider ?? "youtube");
+  const [resources, setResources] = useState<LessonResourceInput[]>(
+    () => lesson?.resources.map(({ title: t, kind, url }) => ({ title: t, kind, url })) ?? [],
+  );
 
   useEffect(() => {
     setTitle(lesson?.title ?? "");
-    setVideoId(lesson?.videoId ?? "");
+    setVideoInput(canonicalVideoUrl(lesson));
+    setDescription(lesson?.description ?? "");
     setMinutes(lesson ? Math.round(lesson.durationSec / 60) : 8);
+    setResources(
+      lesson?.resources.map(({ title: t, kind, url }) => ({ title: t, kind, url })) ?? [],
+    );
   }, [lesson]);
+
+  const parsed = parseVideoUrl(videoInput);
 
   const save = useMutation({
     mutationFn: () =>
@@ -239,18 +272,21 @@ function LessonEditor({
         id: lesson?.id,
         moduleId,
         title,
+        description: description.trim(),
         durationSec: minutes * 60,
-        videoProvider: provider,
-        videoId,
+        videoProvider: parsed!.provider,
+        videoId: parsed!.videoId,
         orderIndex: lesson?.orderIndex ?? 999,
+        resources,
       }),
     onSuccess: () => {
       toast.success(lesson ? "השיעור עודכן" : "השיעור נוסף");
       onSaved();
     },
+    onError: () => toast.error("השמירה נכשלה — נסה שוב"),
   });
 
-  const previewUrl = videoId ? getVideoAdapter(provider).getEmbedUrl(videoId) : null;
+  const previewUrl = parsed ? getVideoAdapter(parsed.provider).getEmbedUrl(parsed.videoId) : null;
 
   return (
     <div className="surface-card p-5">
@@ -264,14 +300,30 @@ function LessonEditor({
             placeholder="לדוגמה: בניית פרסונת קהל יעד"
           />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+
+        <div className="grid grid-cols-[1fr_110px] gap-3">
           <div>
-            <label className="mb-1.5 block text-small text-ink-2">מזהה וידאו (YouTube)</label>
+            <label className="mb-1.5 flex items-center justify-between text-small text-ink-2">
+              <span>קישור וידאו (YouTube / Vimeo)</span>
+              {videoInput.trim() &&
+                (parsed ? (
+                  <span
+                    className="rounded-full px-2 py-0.5 font-mono text-[10px]"
+                    style={{ background: "var(--accent-faint)", color: "var(--accent)" }}
+                  >
+                    {PROVIDER_LABEL[parsed.provider]}
+                  </span>
+                ) : (
+                  <span className="font-mono text-[10px]" style={{ color: "var(--danger)" }}>
+                    קישור לא מזוהה
+                  </span>
+                ))}
+            </label>
             <Input
               dir="ltr"
-              value={videoId}
-              onChange={(e) => setVideoId(e.target.value)}
-              placeholder="aqz-KE-bpKQ"
+              value={videoInput}
+              onChange={(e) => setVideoInput(e.target.value)}
+              placeholder="https://vimeo.com/76979871 או https://youtu.be/aqz-KE-bpKQ"
             />
           </div>
           <div>
@@ -284,6 +336,20 @@ function LessonEditor({
           </div>
         </div>
 
+        <div>
+          <label className="mb-1.5 block text-small text-ink-2">
+            טקסט מתחת לווידאו (תיאור השיעור)
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="מה לומדים בשיעור, דגשים, קישורים שהוזכרו..."
+            className="min-h-[110px] w-full resize-y rounded-lg border border-line bg-bg-2 p-3 text-body text-ink outline-none transition-colors placeholder:text-muted-2 focus:border-[color:var(--accent-border)]"
+          />
+        </div>
+
+        <ResourcesEditor resources={resources} onChange={setResources} />
+
         {/* תצוגה מקדימה חיה */}
         <div>
           <span className="label-mono">תצוגה מקדימה</span>
@@ -294,23 +360,147 @@ function LessonEditor({
                 title="preview"
                 className="h-full w-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
               />
             ) : (
               <div className="flex h-full items-center justify-center text-small text-muted">
-                הזן מזהה וידאו כדי לראות תצוגה מקדימה
+                הדבק קישור וידאו כדי לראות תצוגה מקדימה
               </div>
             )}
           </div>
         </div>
 
         <button
-          onClick={() => title.trim() && videoId.trim() && save.mutate()}
-          disabled={!title.trim() || !videoId.trim() || save.isPending}
+          onClick={() => title.trim() && parsed && save.mutate()}
+          disabled={!title.trim() || !parsed || save.isPending}
           className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
-          {lesson ? "שמירת שינויים" : "הוספת השיעור"}
+          {save.isPending ? "שומרים..." : lesson ? "שמירת שינויים" : "הוספת השיעור"}
         </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- חומרי שיעור: קבצים וקישורים מתחת לווידאו ---------- */
+function ResourcesEditor({
+  resources,
+  onChange,
+}: {
+  resources: LessonResourceInput[];
+  onChange: (next: LessonResourceInput[]) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkTitle, setLinkTitle] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+
+  async function onFilePicked(file: File | undefined) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { url } = await data.admin.uploadMaterial(file);
+      onChange([...resources, { title: file.name, kind: kindForFile(file.name), url }]);
+      toast.success("הקובץ הועלה — אל תשכח לשמור את השיעור");
+    } catch {
+      toast.error("ההעלאה נכשלה — נסה שוב");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  function addLink() {
+    const url = linkUrl.trim();
+    if (!url) return;
+    onChange([
+      ...resources,
+      {
+        title: linkTitle.trim() || url,
+        kind: "link",
+        url: url.startsWith("http") ? url : `https://${url}`,
+      },
+    ]);
+    setLinkTitle("");
+    setLinkUrl("");
+    setLinkOpen(false);
+  }
+
+  return (
+    <div>
+      <label className="mb-1.5 block text-small text-ink-2">חומרים מצורפים (מתחת לווידאו)</label>
+      <div className="rounded-lg border border-line bg-bg-2 p-3">
+        {resources.length === 0 && (
+          <p className="px-1 pb-2 text-small text-muted">אין חומרים — הוסף קובץ או קישור.</p>
+        )}
+        <ul className="space-y-1.5">
+          {resources.map((r, i) => (
+            <li
+              key={`${r.url}-${i}`}
+              className="flex items-center gap-2.5 rounded-md bg-[color:var(--panel)] px-3 py-2"
+            >
+              {r.kind === "link" ? (
+                <Link2 className="h-4 w-4 shrink-0 text-accent" />
+              ) : (
+                <FileText className="h-4 w-4 shrink-0 text-accent" />
+              )}
+              <span className="min-w-0 flex-1 truncate text-small text-ink-2">{r.title}</span>
+              <span className="font-mono text-[10px] uppercase text-muted-2">{r.kind}</span>
+              <button
+                onClick={() => onChange(resources.filter((_, j) => j !== i))}
+                className="text-muted transition-colors hover:text-[color:var(--danger)]"
+                aria-label={`הסרת ${r.title}`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => onFilePicked(e.target.files?.[0])}
+          />
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="btn-secondary inline-flex items-center gap-1.5 text-small disabled:opacity-50"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            {uploading ? "מעלים..." : "העלאת קובץ"}
+          </button>
+          <button
+            onClick={() => setLinkOpen((v) => !v)}
+            className="btn-secondary inline-flex items-center gap-1.5 text-small"
+          >
+            <Paperclip className="h-3.5 w-3.5" />
+            הוספת קישור
+          </button>
+        </div>
+
+        {linkOpen && (
+          <div className="mt-2.5 grid grid-cols-[1fr_1fr_auto] gap-2">
+            <Input
+              value={linkTitle}
+              onChange={(e) => setLinkTitle(e.target.value)}
+              placeholder="כותרת (לדוגמה: תבנית לעבודה)"
+            />
+            <Input
+              dir="ltr"
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="https://..."
+            />
+            <button onClick={addLink} className="btn-primary text-small">
+              הוסף
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

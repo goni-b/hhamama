@@ -108,11 +108,130 @@ export const youtubeAdapter: VideoProviderAdapter = {
 };
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+/* ---------- Vimeo (player.js postMessage API — בלי תלות חיצונית) ---------- */
+export const vimeoAdapter: VideoProviderAdapter = {
+  getEmbedUrl(videoId) {
+    return `https://player.vimeo.com/video/${videoId}?api=1&dnt=1&title=0&byline=0&portrait=0`;
+  },
+  getThumbnailUrl(videoId) {
+    return `https://vumbnail.com/${videoId}.jpg`;
+  },
+  bindPlayer(el, videoId, handlers) {
+    let destroyed = false;
+    let duration = 0;
+    const playerId = `vimeo-${videoId}-${Math.floor(performance.now())}`;
+
+    const iframe = document.createElement("iframe");
+    iframe.src = `${this.getEmbedUrl(videoId)}&player_id=${playerId}`;
+    iframe.id = playerId;
+    iframe.allow = "autoplay; fullscreen; picture-in-picture";
+    iframe.style.width = "100%";
+    iframe.style.height = "100%";
+    iframe.style.border = "0";
+    el.appendChild(iframe);
+
+    const post = (method: string, value?: unknown) => {
+      iframe.contentWindow?.postMessage(
+        JSON.stringify(value !== undefined ? { method, value } : { method }),
+        "https://player.vimeo.com",
+      );
+    };
+
+    const onMessage = (e: MessageEvent) => {
+      if (destroyed || e.origin !== "https://player.vimeo.com") return;
+      let msg: {
+        event?: string;
+        method?: string;
+        value?: unknown;
+        data?: unknown;
+        player_id?: string;
+      };
+      try {
+        msg = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+      } catch {
+        return;
+      }
+      if (msg.player_id && msg.player_id !== playerId) return;
+
+      if (msg.event === "ready") {
+        post("addEventListener", "playProgress");
+        post("addEventListener", "finish");
+        post("getDuration");
+      } else if (msg.method === "getDuration") {
+        duration = Number(msg.value) || 0;
+        handlers.onReady?.(duration);
+      } else if (msg.event === "playProgress") {
+        // בפרוטוקול של Vimeo אירועים מגיעים עם data (לא value)
+        const v = (msg.data ?? msg.value) as { seconds?: number; duration?: number };
+        if (v?.duration) duration = Number(v.duration);
+        handlers.onProgress(Number(v?.seconds) || 0, duration);
+      } else if (msg.event === "finish") {
+        handlers.onEnded?.();
+      }
+    };
+    window.addEventListener("message", onMessage);
+
+    return {
+      destroy: () => {
+        destroyed = true;
+        window.removeEventListener("message", onMessage);
+        iframe.remove();
+      },
+      seekTo: (sec: number) => post("seekTo", sec),
+    };
+  },
+};
+
 const adapters: Record<string, VideoProviderAdapter> = {
   youtube: youtubeAdapter,
-  // vimeo / bunny — פאזה 9
+  vimeo: vimeoAdapter,
+  // bunny — כשיהיה חשבון (שלב D)
 };
 
 export function getVideoAdapter(provider: string): VideoProviderAdapter {
   return adapters[provider] ?? youtubeAdapter;
+}
+
+/* ---------- זיהוי קישור מלא (הדבקה בעורך הקורסים) ---------- */
+export type ParsedVideo = { provider: "youtube" | "vimeo"; videoId: string };
+
+/**
+ * מקבל קישור מלא (YouTube / Vimeo בכל הצורות) או מזהה גולמי, ומחזיר ספק+מזהה.
+ * מחזיר null כשאי אפשר לזהות.
+ */
+export function parseVideoUrl(input: string): ParsedVideo | null {
+  const s = input.trim();
+  if (!s) return null;
+
+  // מזהים גולמיים: וידאו YouTube הוא 11 תווים; Vimeo — מספרי
+  if (/^[\w-]{11}$/.test(s)) return { provider: "youtube", videoId: s };
+  if (/^\d{6,12}$/.test(s)) return { provider: "vimeo", videoId: s };
+
+  let url: URL;
+  try {
+    url = new URL(s.startsWith("http") ? s : `https://${s}`);
+  } catch {
+    return null;
+  }
+  const host = url.hostname.replace(/^www\./, "");
+
+  if (host === "youtu.be") {
+    const id = url.pathname.slice(1).split("/")[0];
+    return /^[\w-]{11}$/.test(id) ? { provider: "youtube", videoId: id } : null;
+  }
+  if (host === "youtube.com" || host === "m.youtube.com" || host === "youtube-nocookie.com") {
+    const v = url.searchParams.get("v");
+    if (v && /^[\w-]{11}$/.test(v)) return { provider: "youtube", videoId: v };
+    const m = url.pathname.match(/^\/(?:embed|shorts|live|v)\/([\w-]{11})/);
+    return m ? { provider: "youtube", videoId: m[1] } : null;
+  }
+  if (host === "vimeo.com") {
+    const m = url.pathname.match(/^\/(?:video\/)?(\d{6,12})/);
+    return m ? { provider: "vimeo", videoId: m[1] } : null;
+  }
+  if (host === "player.vimeo.com") {
+    const m = url.pathname.match(/^\/video\/(\d{6,12})/);
+    return m ? { provider: "vimeo", videoId: m[1] } : null;
+  }
+  return null;
 }

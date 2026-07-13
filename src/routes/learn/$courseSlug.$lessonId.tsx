@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import {
-  X,
   Check,
   Play,
   ArrowLeft,
@@ -17,7 +16,6 @@ import {
 import { data } from "../../lib/data";
 import type { Course, Lesson } from "../../lib/data/types";
 import { getVideoAdapter } from "../../lib/video/provider";
-import { getNote, setNote } from "../../lib/data/mock/store";
 import { copy } from "../../lib/copy";
 import { EASE } from "../../lib/motion";
 
@@ -99,10 +97,11 @@ function LearnPage() {
           <Link
             to="/courses/$slug"
             params={{ slug: course.slug }}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-muted transition-colors hover:text-ink"
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-small text-muted transition-colors hover:text-accent"
             aria-label="חזרה לעמוד הקורס"
           >
-            <X className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">חזרה לקורס</span>
           </Link>
           <div className="min-w-0 flex-1">
             <div className="truncate text-small text-ink">{course.title}</div>
@@ -156,6 +155,13 @@ function LearnPage() {
               )}
             </div>
           </div>
+
+          {/* תיאור השיעור — הטקסט שמנוהל בעורך הקורסים */}
+          {current.description && (
+            <p className="mt-4 max-w-3xl whitespace-pre-line text-body leading-relaxed text-ink-2">
+              {current.description}
+            </p>
+          )}
 
           {/* טאבים */}
           <div className="mt-6">
@@ -377,13 +383,31 @@ function MaterialsTab({ lesson }: { lesson: Lesson }) {
 }
 
 function NotesTab({ lessonId }: { lessonId: string }) {
-  const [val, setVal] = useState(() => getNote(lessonId));
+  const [val, setVal] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadedFor = useRef<string | null>(null);
+
+  // טעינה ראשונית מה-DB (פעם אחת לכל שיעור)
+  useEffect(() => {
+    let cancelled = false;
+    loadedFor.current = null;
+    data.progress.getNote(lessonId).then((body) => {
+      if (!cancelled) {
+        setVal(body);
+        loadedFor.current = lessonId;
+      }
+    });
+    return () => {
+      cancelled = true;
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, [lessonId]);
 
   function onChange(v: string) {
     setVal(v);
+    if (loadedFor.current !== lessonId) return; // אל תשמור לפני שהטעינה הסתיימה
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setNote(lessonId, v), 800);
+    timer.current = setTimeout(() => data.progress.saveNote(lessonId, v), 800);
   }
 
   return (
