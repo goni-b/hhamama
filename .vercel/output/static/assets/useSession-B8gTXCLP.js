@@ -1,0 +1,1 @@
+import{t as e}from"./useQuery-Cc1dmpvd.js";import{t}from"./data-UmTN6Wgx.js";function n(){let n=e({queryKey:[`session`],queryFn:()=>t.auth.getSession(),staleTime:6e4});return{profile:n.data??null,isLoading:n.isLoading,isError:n.isError,refetch:n.refetch}}export{n as t};

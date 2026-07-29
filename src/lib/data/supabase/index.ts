@@ -443,23 +443,20 @@ export const supabaseClient: DataClient = {
     },
     async getStreak() {
       const id = await meId();
-      const { data: p } = await sb()
-        .from("profiles")
-        .select("streak_days, streak_best")
-        .eq("id", id)
-        .single();
-      const { data: last } = await sb()
-        .from("activity_days")
-        .select("activity_date")
-        .eq("user_id", id)
-        .order("activity_date", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      // compute_streak הוא מקור האמת (04:00 ירושלים, מנוחת שישי-שבת, עלי מגן)
+      const { data, error } = await sb().rpc("compute_streak", { p_user: id });
+      if (error) fail(error);
+      const s = (data ?? {}) as {
+        current?: number;
+        best?: number;
+        freezes?: number;
+        lastActive?: string | null;
+      };
       return {
-        days: p?.streak_days ?? 0,
-        best: p?.streak_best ?? 0,
-        freezes: 1,
-        lastActiveDate: last?.activity_date ?? new Date().toISOString().slice(0, 10),
+        days: s.current ?? 0,
+        best: s.best ?? 0,
+        freezes: s.freezes ?? 0,
+        lastActiveDate: s.lastActive ?? new Date().toISOString().slice(0, 10),
       };
     },
   },
